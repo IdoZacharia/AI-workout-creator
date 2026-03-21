@@ -132,7 +132,7 @@ const Home = () => {
 
     try {
       // Send to FastAPI backend
-      const response = await fetch('http://localhost:8000/generate_weekly_plan', {
+      const response = await fetch('https://ai-workout-creator.onrender.com/generate_weekly_plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
