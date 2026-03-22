@@ -1,6 +1,5 @@
 from logic_engine import WorkoutFilter
 from google import genai
-from google import genai
 import os
 from user import User
 import json
