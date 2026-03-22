@@ -5,13 +5,13 @@ import Footer from './Footer';
 
 function App() {
   return (
-    <HashRouter basename="/AI-workout-creator">
+    <HashRouter>
       <div className="flex flex-col min-h-screen bg-slate-950">
         <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/results" element={<ResultsPage />} />
-              <Route path="*" element={<HomePage />} />
+              <Route path="*" element={<Home />} />
             </Routes>
         </main>
         <Footer />
