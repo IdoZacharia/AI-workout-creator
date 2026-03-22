@@ -1,6 +1,6 @@
 from logic_engine import WorkoutFilter
 import google.generativeai as genai
-from google.generativeai import types
+from google import genai
 import os
 from user import User
 import json
