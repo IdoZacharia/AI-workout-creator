@@ -1,5 +1,5 @@
 from logic_engine import WorkoutFilter
-import google.generativeai as genai
+from google import genai
 from google import genai
 import os
 from user import User
