@@ -21,8 +21,7 @@ gemini_api_key = os.getenv("GEMINI_API_KEY")
 # Or use: import google.generativeai as genai (standard library)
 
 origins = [
-    "https://idozacharia.github.io"
-    "https://idozacharia.github.io/AI-workout-creator",
+    "https://idozacharia.github.io",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
