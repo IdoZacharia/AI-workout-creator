@@ -11,7 +11,7 @@ from enum import Enum
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import json
-from google import genai
+import google.generativeai as genai
 import os
 from user_request import UserRequest, WeightPair, UserPreferences
 
