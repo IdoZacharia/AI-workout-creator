@@ -46,7 +46,7 @@ const EQUIPMENT_DATA = fileNames.map(fileName => {
   return {
     id: fileName.substring(0, fileName.lastIndexOf('.')).toLowerCase(),
     name: readableName,
-    img: `../equipment-images/${fileName}`
+    img: `${import.meta.env.BASE_URL}equipment-images/${fileName}`
   };
 });
 
