@@ -41,6 +41,11 @@ app.add_middleware(
 
 muscles_list = ["chest", "lats", "middle back", "lower back", "traps", "quadriceps", "hamstrings", "glutes", "calves", "shoulders", "biceps", "triceps", "forearms", "abdominals"]
 
+@app.get("/")
+def home():
+    return {"status": "AI Workout Server is Online", "owner": "Ido Zacharia"}
+
+
 @app.post("/generate_weekly_plan")
 def generate_weekly_plan_endpoint(request: UserRequest):
     try:
