@@ -185,7 +185,7 @@ const Home = () => {
       
     } catch (error) {
       console.error("Error generating workout:", error);
-      alert("Something went wrong. Is your Python server running?");
+      alert("Something went wrong");
     } finally {
       setIsLoading(false);
     }

@@ -22,9 +22,9 @@ class WorkoutPlanner:
     def generate_weekly_plan(self):
         inventory = self.gather_inventory()
         weights_inventory = self.user_request.weights_inventory
-        db_list = [f"{i.count}x{i.weight}kg" for i in inventory.dumbbells] if inventory.dumbbells else []
-        plates_list = [f"{i.count}x{i.weight}kg" for i in inventory.weight_plates] if inventory.weight_plates else []
-        kb_list = [f"{i.count}x{i.weight}kg" for i in inventory.kettlebell] if inventory.kettlebell else []
+        db_list = [f"{i.count}x{i.weight}kg" for i in weights_inventory.dumbbells] if weights_inventory.dumbbells else []
+        plates_list = [f"{i.count}x{i.weight}kg" for i in weights_inventory.weight_plates] if weights_inventory.weight_plates else []
+        kb_list = [f"{i.count}x{i.weight}kg" for i in weights_inventory.kettlebell] if weights_inventory.kettlebell else []
 
         db_str = ", ".join(db_list) if db_list else "None"
         plates_str = ", ".join(plates_list) if plates_list else "None"
@@ -41,7 +41,7 @@ class WorkoutPlanner:
         FitnessLevel: {self.user_request.fitness_level}
         Goal: {self.user_request.goal}
         Focus Muscles: {self.user_request.target_muscles} <-- CRITICAL: Focus ONLY on these.
-        Health Constraints: {self.user_request.health_constraints if self.user_request.health_constraints else 'None'}
+        Health Constraints: {self.user_request.health_issues if self.user_request.health_issues else 'None'}
 
        --- EXERCISES INVENTORY ---
         {inventory}
@@ -65,9 +65,7 @@ class WorkoutPlanner:
         7. Assign sets/reps based on {self.user_request.goal}.
 
         --- QUANTITY RULES ---
-        1. You MUST provide at least 6 exercises per workout day.
-        2. Ensure the variety covers different angles of the target muscles.
-        3. If the user has limited equipment, use creative variations (e.g., tempo changes, pause reps) to fill the routine.
+        1. Ensure the variety covers different angles of the target muscles.
 
         --- OUTPUT FORMAT (JSON) ---
         {{
