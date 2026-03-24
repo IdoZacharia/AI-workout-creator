@@ -55,33 +55,68 @@ const Home = () => {
   const [workoutPlan, setWorkoutPlan] = useState(null); // To store the result from the AI
   const [validationError, setValidationError] = useState('');
   // 1. Create the 'memory' boxes for our data
-  const [age, setAge] = useState(25);
-  const [weight, setWeight] = useState(70);
-  const [height, setHeight] = useState(170);
+  const [age, setAge] = useState();
+  const [weight, setWeight] = useState();
+  const [height, setHeight] = useState();
   const [gender, setGender] = useState('');
   const [fitnessLevel, setFitnessLevel] = useState('Beginner');
   const [goals, setGoals] = useState([]);
   const [splitStrategy, setSplitStrategy] = useState('Recommended');
-  const [daysPerWeek, setDaysPerWeek] = useState(3);
+  const [daysPerWeek, setDaysPerWeek] = useState();
   const [timeAvailable, setTimeAvailable] = useState(60);
   const [customSplit, setCustomSplit] = useState('A/B');
   const [selectedMuscles, setSelectedMuscles] = useState([]);
   const [healthIssues, setHealthIssues] = useState('');
   const [equipment, setEquipment] = useState([]);
-  const [weightInventory, setWeightInventory] = useState({
-    dumbbells: [],
-    'weight plate': []
-  });
+  const [dumbbellInventory, setDumbbellInventory] = useState([]);
+  const [plateWeightInventory, setPlateWeightInventory] = useState([]);
+  const [kettlebellInventory, setKettlebellInventory] = useState([]);
   const [plateInputWeight, setPlateInputWeight] = useState(1);
   const [plateInputCount, setPlateInputCount] = useState(1);
   const [dumbbellInputWeight, setDumbbellInputWeight] = useState(1);
   const [dumbbellInputCount, setDumbbellInputCount] = useState(1);
+  const [kettlebellInputWeight, setKettlebellInputWeight] = useState(1);
+  const [kettlebellInputCount, setKettlebellInputCount] = useState(1);
   const navigate = useNavigate();
 
   const handleGenerate = async () => {
     setValidationError('');
 
-    if (goals.length === 0) {
+    if(age < 16 || age > 120){
+      setValidationError('Sorry, only users aged 16-120 can use this workout generator.');
+      return;
+    }
+
+    if(weight <= 40){
+      setValidationError('Please enter a valid weight greater than 40 kg.');
+      return;
+    }
+
+    if(height <= 50){
+      setValidationError('Please enter a valid height greater than 50 cm.');
+      return;
+    }
+
+    if(!gender || gender === 'Select your gender'){
+      setValidationError('Please select your gender or non-binary identity.');
+      return;
+    }
+
+    if(!fitnessLevel || fitnessLevel === 'Select your fitness level'){
+      setValidationError('Please select your fitness level.');
+      return;
+    }
+
+    if(daysPerWeek < 1 || daysPerWeek > 7){
+      setValidationError('Please enter a valid number of workout days per week (1-7).');
+      return;
+    }
+
+    if(timeAvailable < 10 || timeAvailable > 180){
+      setValidationError('The time available must be between 10 minutes and 180 minutes.');
+      return;
+    }
+      if (goals.length === 0) {
       setValidationError('Please choose one goal before generating your workout.');
       return;
     }
@@ -115,10 +150,12 @@ const Home = () => {
       health_issues: healthIssues,
       equipment: equipment,
       // We only send inventory for items the user actually selected
-      weights_inventory: equipment.reduce((acc, id) => {
-        if (Array.isArray(weightInventory[id]) && weightInventory[id].length > 0) acc[id] = weightInventory[id];
-        return acc;
-      }, {}),
+
+      weights_inventory: {
+        dumbbells: equipment.includes('dumbbells') ? dumbbellInventory : undefined,
+        "weight plate": equipment.includes('weight plate') ? plateWeightInventory : undefined,
+        kettlebell: equipment.includes('kettlebell') ? kettlebellInventory : undefined
+      },
 
       preferences: {
         time_available: timeAvailable,
@@ -152,8 +189,43 @@ const Home = () => {
     } finally {
       setIsLoading(false);
     }
-};
+  };
 
+  
+  const inventoryMap = {
+    dumbbells: { list: dumbbellInventory, setter: setDumbbellInventory, weightInput: dumbbellInputWeight, countInput: dumbbellInputCount, setWeight: setDumbbellInputWeight, setCount: setDumbbellInputCount },
+    "weight plate": { list: plateWeightInventory, setter: setPlateWeightInventory, weightInput: plateInputWeight, countInput: plateInputCount, setWeight: setPlateInputWeight, setCount: setPlateInputCount },
+    kettlebell: { list: kettlebellInventory, setter: setKettlebellInventory, weightInput: kettlebellInputWeight, countInput: kettlebellInputCount, setWeight: setKettlebellInputWeight, setCount: setKettlebellInputCount }
+  };
+
+
+  const addWeight = (weight, count, type) => {
+    const w = parseFloat(weight);
+    const c = parseInt(count);
+    if (isNaN(w) || w <= 0 || isNaN(c) || c <= 0) {
+      setValidationError('Please enter valid weight and count values.');
+      return;
+    }
+
+    const { list, setter } = inventoryMap[type];
+    const existingItem = list.find(item => item.weight === w);
+
+    if (existingItem) {
+      const updatedList = list.map(item => 
+        item.weight === w ? { ...item, count: item.count + c } : item
+      );
+      setter(updatedList);
+    } else {
+      const newList = [...list, { weight: w, count: c }];
+      setter(newList.sort((a, b) => a.weight - b.weight));
+    }
+  };
+
+  const removeWeight = (weight, type) => {
+    const {list, setter} = inventoryMap[type];
+    const updatedList = list.filter(item => item.weight !== weight);
+    setter(updatedList);
+  };
 
 
   const toggleCategory = (category, specifics) => {
@@ -168,7 +240,7 @@ const Home = () => {
       setSelectedMuscles([...new Set([...selectedMuscles, ...specifics])]);
     }
   };
-
+  
   console.log("Currently selected equipment IDs:", equipment);
   return (
     // The main background container
@@ -179,51 +251,53 @@ const Home = () => {
       {/* 2. The User Card */}
       <div className="bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-700">
         <h2 className="text-xl font-semibold mb-6 border-b border-slate-700 pb-2">Biometrics</h2>
+        {/*container for age, weight and height inputs*/}
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
+          {/* Age Input */}
+          <div className="w-full sm:flex-1 flex flex-col gap-2">
+            <label className="block text-sm font-medium mb-2">Age</label>
+            <input 
+              max={120}
+              min={16}
+              type="number" 
+              value={age}
+              // This 'onChange' captures what you type and saves it to 'age'
+              onChange={(e) => setAge(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-        {/* Age Input */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Age</label>
-          <input 
-            max={120}
-            min={16}
-            type="number" 
-            value={age}
-            // This 'onChange' captures what you type and saves it to 'age'
-            onChange={(e) => setAge(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+          {/* Weight Input */}
+          <div className="w-full sm:flex-1 flex flex-col gap-2">
+            <label className="block text-sm font-medium mb-2">Weight (kg)</label>
+            <input 
+              type="number"
+              step ="0.1"
+              value={weight}
+              onChange={(e) => setWeight(parseFloat(e.target.value))}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-        {/* Weight Input */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Weight (kg)</label>
-          <input 
-            type="number"
-            step ="0.1"
-            value={weight}
-            onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Height Input */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Height (cm)</label>
-          <input 
-            min={100}
-            max={230}
-            type="number" 
-            step ="0.1"
-            value={height}
-            onChange={(e) => setHeight(parseFloat(e.target.value) || 0)}
-            onBlur={ () => {
-              let val = parseFloat(height);
-              if (val < 100) setHeight(100);
-              else if (val > 230) setHeight(230); 
-             }
-            }
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          {/* Height Input */}
+          <div className="w-full sm:flex-1 flex flex-col gap-2">
+            <label className="block text-sm font-medium mb-2">Height (cm)</label>
+            <input 
+              min={100}
+              max={230}
+              type="number" 
+              step ="0.1"
+              value={height}
+              onChange={(e) => setHeight(parseFloat(e.target.value))}
+              onBlur={ () => {
+                let val = parseFloat(height);
+                if (val < 100) setHeight(100);
+                else if (val > 230) setHeight(230); 
+              }
+              }
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
         
@@ -279,7 +353,7 @@ const Home = () => {
             min={1}
             max={7}
             value={daysPerWeek}
-            onChange={(e) => setDaysPerWeek(parseInt(e.target.value, 10) || 1)}
+            onChange={(e) => setDaysPerWeek(parseInt(e.target.value, 10))}
             onBlur={ () => {
                 let val = parseInt(daysPerWeek, 10);
                 if (val > 7 || val < 1) setDaysPerWeek(3);
@@ -296,13 +370,13 @@ const Home = () => {
             type="number"
             min={1}
             value={timeAvailable}
-            onChange={(e) => setTimeAvailable(parseInt(e.target.value, 10) || 1)}
+            onChange={(e) => setTimeAvailable(parseInt(e.target.value, 10))}
             className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         {/* Goals Selection Section */}
         <div>
-          <label className="block text-sm font-medium mb-2">Goals</label>
+          <label className="block text-sm font-medium mb-2">Goal</label>
           <div className="grid grid-cols-2 gap-3">
             {['Weight Loss', 'Hypertrophy', 'Endurance', 'Strength'].map((goal) => (
               <label
@@ -437,11 +511,9 @@ const Home = () => {
                     onClick={() => {
                       if (isSelected) {
                         setEquipment(equipment.filter(e => e !== item.id));
-                        if (item.id === 'dumbbells' || item.id === 'weight plate') {
-                          setWeightInventory(prev => ({
-                            ...prev,
-                            [item.id]: []
-                          }));
+                        if (item.id === 'dumbbells' || item.id === 'weight plate' || item.id === 'kettlebell') {
+                          const { setter } = inventoryMap[item.id];
+                          setter([]);
                         }
                       } else {
                         setEquipment([...equipment, item.id]);
@@ -483,21 +555,19 @@ const Home = () => {
           </div>
         </div>
 
+
         {/* Weight Inventory - Appears only if specific equipment is selected */}
-        {(equipment.includes('dumbbells') || equipment.includes('weight plate')) && (
+        {(equipment.includes('dumbbells') || equipment.includes('weight plate') || equipment.includes('kettlebell')) && (
           <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h3 className="text-lg font-bold text-blue-400 border-b border-slate-800 pb-2">
               Weight Inventory (kg)
             </h3>
 
-            {['dumbbells', 'weight plate'].map((id) => {
-              const isDumbbell = id === 'dumbbells';
-              
-              const currentWeight = isDumbbell ? dumbbellInputWeight : plateInputWeight;
-              const setWeight = isDumbbell ? setDumbbellInputWeight : setPlateInputWeight;
-              
-              const currentCount = isDumbbell ? dumbbellInputCount : plateInputCount;
-              const setCount = isDumbbell ? setDumbbellInputCount : setPlateInputCount;
+
+            {['dumbbells', 'weight plate', 'kettlebell'].map((id) => {
+
+              const { list, setter, weightInput, countInput, setWeight, setCount } = inventoryMap[id];
+
               // Only show the input for the item if it's selected in the grid
               return equipment.includes(id) && (
                   <div key={id} className="bg-slate-800/40 p-4 rounded-2xl border border-slate-700">
@@ -512,9 +582,8 @@ const Home = () => {
                       <input
                         type="number"
                         min={1}
-                        value={currentWeight}
-                        onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-                        placeholder="0"
+                        value={weightInput}
+                        onChange={(e) => setWeight(parseFloat(e.target.value))}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-4 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                       />
                     </div>
@@ -524,9 +593,8 @@ const Home = () => {
                       <input
                         type="number"
                         min={1}
-                        value={currentCount}
-                        onChange={(e) => setCount(parseInt(e.target.value, 10) || 0)}
-                        placeholder="0"
+                        value={countInput}
+                        onChange={(e) => setCount(parseInt(e.target.value, 10))}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-4 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                       />
                     </div>
@@ -534,21 +602,7 @@ const Home = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        if (currentWeight > 0 && currentCount > 0) {
-                          const newItem = {
-                            weight: parseFloat(currentWeight),
-                            count: parseInt(currentCount, 10)
-                          };
-                          setWeightInventory(prev => {
-                            const existing = Array.isArray(prev[id]) ? prev[id] : [];
-                            return {
-                              ...prev,
-                              [id]: [...existing, newItem].sort((a, b) => a.weight - b.weight)
-                            };
-                          });
-                          setWeight(1);
-                          setCount(1);
-                        }
+                        addWeight(weightInput, countInput, id);
                       }}
                       className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-xl transition-all active:scale-95"
                     >
@@ -558,7 +612,7 @@ const Home = () => {
 
                   {/* List of Pair "Pills" */}
                   <div className="flex flex-wrap gap-3">
-                    {(weightInventory[id] ?? []).map((item, index) => (
+                    {(list ?? []).map((item, index) => (
                       <div 
                         key={index} 
                         className="flex items-center gap-3 bg-slate-800 border border-slate-600 pl-4 pr-2 py-2 rounded-2xl group transition-all hover:border-blue-500"
@@ -568,13 +622,9 @@ const Home = () => {
                           <span className="text-[10px] text-blue-400 uppercase font-bold">Qty: {item.count}</span>
                         </div>
                         <button 
-                          onClick={() => setWeightInventory(prev => {
-                            const existing = Array.isArray(prev[id]) ? prev[id] : [];
-                            return {
-                              ...prev,
-                              [id]: existing.filter((_, i) => i !== index)
-                            };
-                          })}
+                          onClick={() => {
+                            removeWeight(item.weight, id);
+                          }}
                           className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-red-500/20 hover:text-red-400 transition-colors"
                         >
                           ×

@@ -21,7 +21,16 @@ class WorkoutPlanner:
 
     def generate_weekly_plan(self):
         inventory = self.gather_inventory()
-        weights_as_dict = self.user_request.model_dump()["weights_inventory"]
+        weights_inventory = self.user_request.weights_inventory
+        db_list = [f"{i.count}x{i.weight}kg" for i in inventory.dumbbells] if inventory.dumbbells else []
+        plates_list = [f"{i.count}x{i.weight}kg" for i in inventory.weight_plates] if inventory.weight_plates else []
+        kb_list = [f"{i.count}x{i.weight}kg" for i in inventory.kettlebell] if inventory.kettlebell else []
+
+        db_str = ", ".join(db_list) if db_list else "None"
+        plates_str = ", ".join(plates_list) if plates_list else "None"
+        kb_str = ", ".join(kb_list) if kb_list else "None"
+
+
         prompt = f"""
         Role: Elite Fitness Coach.
         Task: Create a complete {self.user_request.preferences.time_available}-minute workout for {self.user_request.preferences.days_per_week} days a week.
@@ -32,6 +41,7 @@ class WorkoutPlanner:
         FitnessLevel: {self.user_request.fitness_level}
         Goal: {self.user_request.goal}
         Focus Muscles: {self.user_request.target_muscles} <-- CRITICAL: Focus ONLY on these.
+        Health Constraints: {self.user_request.health_constraints if self.user_request.health_constraints else 'None'}
 
        --- EXERCISES INVENTORY ---
         {inventory}
@@ -39,14 +49,20 @@ class WorkoutPlanner:
         --- EQUIPMENT AVAILABLE ---
         {", ".join(self.user_request.equipment)}
 
-        WEIGHT INVENTORY (for exercises that require plates/dumbbells):
-        {json.dumps(weights_as_dict, indent=2)}
+        WEIGHT INVENTORY (Use ONLY these weights and for exercises that require plates/dumbbells):
+        - Dumbbells: {db_str}
+        - Weight Plates: {plates_str}
+        - Kettlebells: {kb_str}
 
         --- INSTRUCTIONS ---
         1. if you can - use exercises from the Inventory, if you can't find a perfect match or you think you have a better one, choose by yourself that fits the criterias.
         2. If the exercise require also weight plates or dumbbells use the exercise only if the user have them available.
-        3. Create a logical flow (Compound -> Isolation).
-        4. Assign sets/reps based on {self.user_request.goal}.
+        3. Make sure the user health constraints are respected (e.g., avoid high-impact exercises for joint issues).
+        4. If a user has "1x20kg" dumbbell, you CANNOT suggest a "2-arm dumbbell press" with 20kg. 
+           You must suggest a "Single-arm press" or use a weight they have 2 of.
+        5. For Barbell exercises, calculate total weight: 20kg (bar) + sum of plates used.
+        6. Create a logical flow (Compound -> Isolation).
+        7. Assign sets/reps based on {self.user_request.goal}.
 
         --- QUANTITY RULES ---
         1. You MUST provide at least 6 exercises per workout day.

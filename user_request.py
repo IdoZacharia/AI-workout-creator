@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 
 # class Gender(str, Enum):
@@ -33,6 +33,10 @@ class WeightPair(BaseModel):
     weight: float
     count: int
 
+class weights_Inventory(BaseModel):
+    dumbbells: Optional[List[WeightPair]] = None
+    weight_plates: Optional[List[WeightPair]] = Field(None, alias="weight plate")
+    kettlebell: Optional[List[WeightPair]] = None
 class UserRequest(BaseModel):
     gender: str
     age: int
@@ -42,7 +46,7 @@ class UserRequest(BaseModel):
     goal: str              
     health_issues: str           
     equipment: List[str]
-    weights_inventory: Dict[str, List[WeightPair]]
+    weights_inventory: weights_Inventory
     preferences: UserPreferences
     target_muscles: Optional[List[str]] = None
         
